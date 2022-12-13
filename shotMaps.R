@@ -23,9 +23,9 @@ request_headers = c(
   `Accept-Encoding` = 'gzip, deflate, br',
   `Accept-Language` = 'en-US,en;q=0.9'
 )
-request = GET(players_url, add_headers(request_headers))
+request = httr::GET(players_url, add_headers(request_headers))
 
-players_data = fromJSON(content(request, as = "text"))
+players_data = jsonlite::fromJSON(content(request, as = "text"))
 players = tbl_df(data.frame(players_data$resultSets$rowSet[[1]], stringsAsFactors = FALSE))
 names(players) = tolower(players_data$resultSets$headers[[1]])
 
@@ -98,20 +98,6 @@ circle_points = function(center = c(0, 0), radius = 1, npoints = 360) {
   return(data_frame(x = center[1] + radius * cos(angles),
                     y = center[2] + radius * sin(angles)))
 }
-
-width = 50
-height = 94 / 2
-key_height = 19
-inner_key_width = 12
-outer_key_width = 16
-backboard_width = 6
-backboard_offset = 4
-neck_length = 0.5
-hoop_radius = 0.75
-hoop_center_y = backboard_offset + neck_length + hoop_radius
-three_point_radius = 23.75
-three_point_side_radius = 22
-three_point_side_height = 14
 
 court_themes = list(
   light = list(
@@ -200,7 +186,6 @@ plot_court = function(court_theme = court_themes$light, use_short_three = FALSE)
     restricted,
     three_point_line
   )
-  
   
   court_points <- court_points
   
@@ -450,8 +435,12 @@ get_data <- function(id, seasons, season_type) {
   return(df)
   
 }
-
-df <- get_data(203081, "2019-20", "Regular Season")
+sc <- find_player_id_by_name("Stephen Curry")
+mj <- find_player_id_by_name("Michael Jordan")
+di <- find_player_id_by_name("Damian Lillard")
+df <- get_data(sc, "2015-16", "Regular Season")
+df2 <- get_data(mj, "1997-98", "Regular Season")
+df3 <- get_data(di, "2019-20", "Regular Season")
 
 plot_court(court_themes$light) +
   geom_polygon(
@@ -462,17 +451,14 @@ plot_court(court_themes$light) +
       group = hexbin_id, 
       fill = bounded_fg_diff))
 
-
-
 # Extra 
-
 library(prismatic)
 library(extrafont)
 library(cowplot)
 
 p <- plot_court(court_themes$light) +
   geom_polygon(
-    data = df,
+    data = df2,
     aes(
       x = adj_x,
       y = adj_y,
@@ -509,8 +495,16 @@ p <- plot_court(court_themes$light) +
         plot.subtitle = element_text(hjust = 0.5, size = 9, vjust = -.5), 
         plot.caption = element_text(face = "italic", size = 8), 
         plot.margin = margin(0, -5, 0, -5, "cm")) +
-  labs(title = "Damian Lillard",
-       subtitle = "2019-20 Regular Season")
+  labs(title = "Michael Jordan",
+       subtitle = "1997-98 Regular Season")
 
 ggdraw(p) + 
   theme(plot.background = element_rect(fill="floralwhite", color = NA))
+
+set.seed(11)
+xygrid <- expand.grid(x = 0:width, y = 0:height)
+ranPoints <- data.frame(x = sample(-width:width, 5), y = sample(0:height, 5))
+plot_court(court_themes$light) + 
+geom_vline(xintercept = c(xygrid$y, xygrid$y * -1), col = "grey80") + 
+geom_hline(yintercept = c(xygrid$x), col = "grey80") +
+geom_point(data = ranPoints, aes(x, y), col = "red", shape = "x", size = 10)
